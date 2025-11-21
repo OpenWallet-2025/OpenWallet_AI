@@ -1,0 +1,17 @@
+# GPU: RTX 5060 Ti (CUDA 12.8) 5060 환경에서 개발하였습니다.
+
+# Core
+requests>=2.31
+beautifulsoup4>=4.12
+feedparser>=6.0
+python-dateutil>=2.8
+
+# Hugging Face + LLM
+transformers>=4.45,<5
+accelerate>=1.0
+sentencepiece>=0.2.0
+
+# Torch 
+torch>=2.9,<2.10
+torchvision>=0.20,<0.21
+numpy>=2.2

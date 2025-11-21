@@ -1,0 +1,58 @@
+# ======================================
+# OpenWallet_AI / trend_summary
+# Git ignore rules
+# ======================================
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.env
+.venv/
+venv/
+env/
+
+# SQLite / local data
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs / temp files
+*.log
+*.tmp
+*.bak
+.cache/
+cache/
+output/
+checkpoints/
+runs/
+
+# Model / tokenizer cache
+*.bin
+*.pt
+*.safetensors
+*.ckpt
+huggingface/
+transformers_cache/
+models/
+*.h5
+
+# Jupyter / IPython
+.ipynb_checkpoints/
+*.ipynb
+
+# OS / IDE artifacts
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build / dist
+build/
+dist/
+*.egg-info/
