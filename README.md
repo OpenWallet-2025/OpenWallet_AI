@@ -147,9 +147,9 @@ Response Example:
 
 ---
 
-# 이번 브랜치 정보
+# Merge한 브랜치 정보
 
-현재 브랜치:  
+ Merge한 브랜치:  
 ```
 feature/5-ai-unified-api-server
 ```
