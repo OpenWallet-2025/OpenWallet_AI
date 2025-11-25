@@ -1,126 +1,177 @@
-# 🌿 Open Wallet AI Branch 전략 & 네이밍 규칙
+# Open Wallet AI – Unified API Server
+> 2025년 11월 25일 업데이트
 
-Open Wallet AI 팀은 **AI 소비 분석 및 지출 인사이트 제공 서비스**를 개발합니다.  
-효율적인 협업과 안정적인 배포를 위해 다음과 같은 **Git Branch 전략**을 적용합니다.
+Open Wallet AI는 영수증 OCR, 소비 분석, 트렌드 요약, LLM 기반 개인 소비 리포트 생성 기능을 제공하는 **통합 FastAPI 서버**입니다.
 
----
-
-## 🔹 Branch 종류
-
-| Branch | 역할 | 설명 |
-|---------|------|------|
-| **main** | 배포용 브랜치 | 실제 서비스에 배포 가능한 **안정 버전**만 존재합니다. 개발자는 직접 커밋하지 않습니다. |
-| **develop** | 개발 통합 브랜치 | 각 기능(feature) 브랜치를 병합하고 테스트하는 **개발용 통합 브랜치**입니다. |
-| **feature** | 기능 개발 브랜치 | 새로운 기능을 개발할 때 **develop**에서 분기하여 작업 후 develop에 병합합니다. |
-| **release** | 배포 준비 브랜치 | 배포 전 테스트, 문서 정리, 버그 수정 등을 진행하며 **새로운 기능 추가는 금지**됩니다. |
-| **hotfix** | 긴급 수정 브랜치 | 배포 후 발생한 버그를 긴급히 수정할 때 main에서 분기 후 main, develop에 병합합니다. |
+본 저장소는 AI 기능을 모듈로 구성하고, 모든 기능을 하나의 서버에서 사용할 수 있도록 통합한 버전을 포함하고 있습니다.
 
 ---
 
-## 🧩 네이밍 규칙
+# 주요 기능
 
-| 종류 | 예시 | 규칙 |
-|------|------|------|
-| **main / develop** | `main`, `develop` | 그대로 사용 |
-| **feature** | `feature/5-ocr-receipt-parser`, `feature/14-emotion-analysis`, `feature/22-ai-report-generator` | `feature/{issue-number}-{feature-name}` 형식 |
-| **release** | `release-1.2.0`, `release-2025Q1` | `release-{version}` 또는 `release-{기간}` |
-| **hotfix** | `hotfix-1.2.1` | `hotfix-{version}` 형식 |
-
----
-
-## 💡 Tip for New Members
-
-- 항상 **develop 브랜치에서 작업을 시작**하세요.  
-- **절대 main 브랜치에 직접 커밋하지 마세요.**  
-- 브랜치 이름만 봐도 어떤 작업인지 한눈에 알 수 있도록 작성하세요.  
-- 기능 단위로 브랜치를 작게 나누면 코드 리뷰와 충돌 해결이 쉬워집니다.  
+### 1. OCR 영수증 분석  
+Google Vision OCR 기반으로 영수증에서 다음 정보를 자동 추출:
+- 가맹점명
+- 결제금액
+- 결제일자
+- 품목 리스트
+- 카테고리 추천
 
 ---
 
-## 🧠 AI 기능별 브랜치 예시
+### 2. 소비 통계 분석  
+내부 DB의 거래기록을 기반으로:
+- 총 지출액  
+- Top 가맹점  
+- 일별 지출 추세  
 
-| 기능 | 브랜치명 예시 | 설명 |
-|------|---------------|------|
-| **OCR 기반 자동 입력** | `feature/5-ocr-receipt-parser` | Google Vision OCR을 이용한 영수증 자동 인식 기능 |
-| **자동 카테고리 분류** | `feature/8-category-predictor` | 인식된 상호명·품목 키워드 기반 카테고리 분류 모델 |
-| **감정 기반 소비 분석** | `feature/14-emotion-analysis` | 감정 태그와 소비 패턴 상관관계 분석 AI |
-| **메모 기반 피드백** | `feature/17-context-feedback` | 자연어 메모 분석을 통한 개인 맞춤형 피드백 |
-| **AI 소비 리포트** | `feature/22-ai-report-generator` | 주간/월간 소비 리포트를 자동 생성하는 GPT 분석기 |
-| **소비 코치 챗봇** | `feature/31-chat-coach` | 대화형 소비 습관 코치 AI (예: “이번 주 낭비한 건 뭐야?”) |
-| **지출 트렌드 뉴스 크롤러** | `feature/40-expense-trend-crawler` | Web Crawling 기반 소비 트렌드 분석 모듈 |
-| **소셜/챌린지 기능** | `feature/44-social-challenge` | 커피 챌린지, 배지, 순위 기능 구현 |
-| **정기 결제 알림** | `feature/48-subscription-alert` | 구독 결제 3일 전 알림 서비스 |
+등을 계산하여 반환합니다.
 
 ---
 
-## 📘 예시 워크플로우
+### 3. 외부 소비 트렌드 요약  
+외부 소비 분석 API를 호출하여  
+**요약된 트렌드 텍스트**를 제공합니다.
+
+---
+
+### 4. 개인 소비 분석 리포트
+사용자의 전체 소비 패턴을 기반으로  
+Qwen 모델이 **요약 리포트**를 생성합니다.
+
+---
+
+# How to Use
+
+## 1. 설치
 
 ```bash
-# 1️⃣ develop 브랜치에서 새 브랜치 생성
-git checkout develop
-git pull origin develop
-git checkout -b feature/14-emotion-analysis
-
-# 2️⃣ 기능 개발 후 커밋
-git add .
-git commit -m "feat: add emotion-based spending analysis model"
-
-# 3️⃣ 원격 저장소로 푸시
-git push origin feature/14-emotion-analysis
-
-# 4️⃣ Pull Request 생성 → 코드 리뷰 후 develop으로 병합
+git clone https://github.com/OpenWallet-2025/OpenWallet_AI.git
+cd OpenWallet_AI
+pip install -r requirements.txt
 ```
 
 ---
 
-## 🪴 Branch 병합 흐름
+## 2. FastAPI 서버 실행
 
+```bash
+uvicorn main:app --reload
 ```
-feature → develop → release → main
-          ↑                 ↓
-        hotfix ──────────────┘
-```
+
+### Swagger UI  
+http://127.0.0.1:8000/docs
+
+### ReDoc  
+http://127.0.0.1:8000/redoc
 
 ---
 
-## 🧾 Commit Convention
+# API 명세서
 
-| 타입 | 의미 | 예시 |
-|------|------|------|
-| **feat:** | 새로운 기능 추가 | `feat: add OCR receipt parsing with Google Vision` |
-| **fix:** | 버그 수정 | `fix: resolve null error in category predictor` |
-| **docs:** | 문서 수정 | `docs: update README with branch rules` |
-| **refactor:** | 코드 구조 변경 | `refactor: optimize emotion model pipeline` |
-| **test:** | 테스트 코드 추가 | `test: add OCR parser unit tests` |
-| **chore:** | 기타 작업 (환경 설정 등) | `chore: update dependencies` |
+## Health Check  
+`GET /health`
 
----
-
-## 🧩 PR 템플릿
-
-```markdown
-## 🧠 작업 개요
-- [ ] 새로운 기능 추가
-- [ ] 버그 수정
-- [ ] 리팩터링
-- [ ] 문서 / 설정 변경
-
-## ✨ 변경 내용
-- 구현한 기능: (예시) 감정 기반 소비 분석 모델
-- 주요 변경 파일: `ai/modules/emotion_analysis.py`
-- 테스트 완료 여부: ✅
-
-## 🧩 이슈 번호
-Closes #14
+```json
+{ "status": "ok" }
 ```
 
 ---
 
-## 🌱 협업 기본 규칙
+## OCR – 영수증 분석  
+`POST /api/ocr-receipt`
 
-- 모든 PR은 **최소 1명 이상의 리뷰 승인** 후 병합합니다.  
-- **release → main 병합** 시 배포 진행 및 버전 태그 추가 (`v1.0.0`).  
-- 병합된 feature 브랜치는 **반드시 삭제** (`git branch -d feature/...`).  
-- 민감 정보(`.env`, API 키, DB 설정 등)는 `.gitignore`로 제외합니다.  
+Request (multipart/form-data):
+
+| 필드 | 설명 |
+|-----|------|
+| file | 영수증 이미지 |
+
+Response Example:
+
+```json
+{
+  "merchant": "스타벅스",
+  "amount": 5800,
+  "date": "2025-11-24",
+  "items": [{ "name": "콜드브루", "price": 4800 }],
+  "category": "카페/음료",
+  "raw_text": "..."
+}
+```
 
 ---
+
+## 소비 통계 API
+
+### 총 지출액  
+`GET /api/spend/total`
+
+### Top 가맹점  
+`GET /api/spend/top-merchants`
+
+### 소비 추세  
+`GET /api/spend/trend`
+
+---
+
+## 소비 트렌드 요약  
+`GET /api/trend-summary`
+
+---
+
+## 개인 소비 리포트 (LLM)  
+`POST /api/report`
+
+```json
+{
+  "user_id": "user123",
+  "start_date": "2025-11-01",
+  "end_date": "2025-11-25"
+}
+```
+
+---
+
+# Branch 전략 (Git Flow)
+
+본 프로젝트는 Git Flow 전략을 따릅니다.
+
+| Branch | 역할 | 설명 |
+|--------|------|------|
+| **main** | 배포용 | 실제 서비스 배포 가능한 안정 버전. 직접 커밋 금지 |
+| **develop** | 개발 통합 | feature 브랜치가 모두 머지되는 통합 개발 브랜치 |
+| **feature/** | 기능 개발 | develop에서 분기 → 기능 개발 → 다시 develop에 머지 |
+| **release/** | 배포 준비 | 배포 전 QA, 문서 정리, 테스트. 기능 추가 금지 |
+| **hotfix/** | 긴급 수정 | 배포 후 발견된 버그 수정용. main에서 분기 후 main+develop 둘 다 머지 |
+
+---
+
+# 이번 브랜치 정보
+
+현재 브랜치:  
+```
+feature/5-ai-unified-api-server
+```
+
+내용:
+- OCR + 소비 통계 + 트렌드 요약 + LLM 리포트 기능 통합
+- FastAPI 기반 서버 구축
+- curl 및 Swagger 테스트 완료
+- API 명세서 업데이트
+
+---
+
+# 프로젝트 구조
+
+```
+OpenWallet_AI/
+│
+├── ocr/                 # OCR 관련 로직
+├── report/              # LLM 소비 리포트
+├── main.py              # FastAPI 통합 서버
+├── tool.py              # 소비 통계 유틸
+├── trend_summary.py     # 트렌드 요약 기능
+├── requirements.txt
+└── README.md
+```
