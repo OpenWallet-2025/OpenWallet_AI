@@ -68,7 +68,7 @@ app.add_middleware(
 
 # OCR 영수증 파서 API
 
-@app.post("/api/ocr-receipt", response_model=OCRResult)
+@app.post("/ocr-receipt", response_model=OCRResult)
 async def api_ocr_receipt(
     file: UploadFile = File(...),
     memo: Optional[str] = Form(default=None),
@@ -123,7 +123,7 @@ class TotalSpendResponse(BaseModel):
     currency: str = "KRW"
 
 
-@app.post("/api/stats/total-spend", response_model=TotalSpendResponse)
+@app.post("/stats/total-spend", response_model=TotalSpendResponse)
 def api_total_spend(req: TotalSpendRequest):
     data = get_total_spend(
         user_id=req.user_id,
@@ -154,7 +154,7 @@ class TopMerchantsResponse(BaseModel):
     currency: str = "KRW"
 
 
-@app.post("/api/stats/top-merchants", response_model=TopMerchantsResponse)
+@app.post("/stats/top-merchants", response_model=TopMerchantsResponse)
 def api_top_merchants(req: TopMerchantsRequest):
     data = get_top_merchants(
         user_id=req.user_id,
@@ -184,7 +184,7 @@ class TrendResponse(BaseModel):
     currency: str = "KRW"
 
 
-@app.post("/api/stats/trend", response_model=TrendResponse)
+@app.post("/stats/trend", response_model=TrendResponse)
 def api_trend(req: TrendRequest):
     data = get_trend(
         user_id=req.user_id,
@@ -217,7 +217,7 @@ class TrendSummaryResponse(BaseModel):
     model: str
 
 
-@app.post("/api/trends/summary", response_model=TrendSummaryResponse)
+@app.post("/trends/summary", response_model=TrendSummaryResponse)
 def api_trend_summary(req: TrendSummaryRequest):
     """
     Google News RSS + Kanana로 최근 N일 간의 소비/경제 트렌드 요약.
@@ -246,7 +246,7 @@ def api_trend_summary(req: TrendSummaryRequest):
 # 4. Qwen 기반 개인 소비 리포트 API
 # (기존 report/main.py 로직 그대로)
 
-@app.post("/api/report", response_model=ReportResponse)
+@app.post("/report", response_model=ReportResponse)
 def api_report(request: ReportRequest):
     """
     - Request: ReportRequest (user_id, start_date, end_date, question)
