@@ -1,6 +1,6 @@
-# version 0.1.0
-# 코드 작성일: 2025년 11월 11일
-# ocr 1st draft for OpenWallet
+# version 0.1.1
+# 코드 작성일: 2025년 11월 28일
+# ocr 1st draft for OpenWallet (merchant 로직 개선)
 
 import io
 import os
@@ -24,7 +24,7 @@ except Exception:
     USE_VISION = False
     vision_client = None
 
-app = FastAPI(title="OpenWallet OCR API", version="0.1.0")
+app = FastAPI(title="OpenWallet OCR API", version="0.1.1")
 
 # 카테고리 키워드를 통해 분류합니다. 해당 부분은 카테고리를 정한 후 수정할 예정입니다.
 CATEGORY_KEYWORDS = {
@@ -71,7 +71,23 @@ ITEM_LINE_PATTERN = re.compile(
     r"^(.+?)\s+(\d+) ?(개|EA|pcs|PCS)?\s+([\d,]+)[원₩]?$", re.IGNORECASE
 )
 
-IGNORE_MERCHANT_TOKENS = ["영수증", "고객용", "매장용", "부가세", "면세", "신용카드", "현금영수증", "결제", "합계", "사업자번호"]
+# 3:29, 3시29, 3:29 1 같은 시간/상단바 라인 감지용
+TIME_LINE_RE = re.compile(r"^\s*\d{1,2}[:시]\d{1,2}")
+
+IGNORE_MERCHANT_TOKENS = [
+    "영수증", "고객용", "매장용", "부가세", "면세", "신용카드", "현금영수증",
+    "결제", "합계", "사업자번호"
+]
+
+# 브랜드 힌트: 있으면 이 줄을 최우선으로 상호로 선택
+BRAND_HINTS = [
+    "스타벅스", "STARBUCKS",
+    "맥도날드", "McDonald's",
+    "버거킹", "BurgER KING",
+    "투썸", "TWOSOME",
+    "폴바셋", "PAUL BASSETT",
+    "메가커피", "MEGA COFFEE",
+]
 
 def normalize(text: str) -> List[str]:
     lines = [re.sub(r"\s+", " ", ln).strip() for ln in text.splitlines()]
@@ -111,21 +127,41 @@ def extract_amount(text: str) -> Optional[int]:
     return None
 
 def is_probably_merchant(line: str) -> bool:
+    line = line.strip()
+    if not line:
+        return False
+
+    # 시간 / 상단 상태바 같은 줄은 제외 (예: "3:29 1")
+    if TIME_LINE_RE.match(line):
+        return False
+
+    # "전자영수증", "결제" 같은 키워드가 들어가면 제외
     if any(tok in line for tok in IGNORE_MERCHANT_TOKENS):
         return False
-    # 숫자/기호만 있으면 제외
-    if re.fullmatch(r"[0-9\-\s.]+", line):
+
+    # 숫자/기호만 있으면 제외 (:,.-() 등 포함)
+    if re.fullmatch(r"[0-9\s.:,\-\(\)]+", line):
         return False
-    # 너무 짧은 건 제외
-    return len(re.sub(r"[^가-힣A-Za-z0-9]", "", line)) >= 2
+
+    # 너무 짧은 건 제외 (한글/영문/숫자만 보고 길이 체크)
+    core = re.sub(r"[^가-힣A-Za-z0-9]", "", line)
+    return len(core) >= 2
 
 def extract_merchant(lines: List[str]) -> Optional[str]:
-    # 상단부에서 상호 추정
+    # 상단부를 우선 스캔
     top = lines[:10] if len(lines) >= 10 else lines
+
+    # 1) 브랜드 힌트가 있는 줄을 최우선 상호로 사용
+    for ln in top:
+        if any(h.lower() in ln.lower() for h in BRAND_HINTS):
+            return ln
+
+    # 2) 일반적인 상호 후보 검색
     for ln in top:
         if is_probably_merchant(ln):
             return ln
-    # 실패 시 하단에서도 탐색
+
+    # 3) 실패 시 하단에서도 탐색
     bottom = lines[-10:] if len(lines) >= 10 else lines
     for ln in bottom:
         if is_probably_merchant(ln):
@@ -145,7 +181,8 @@ def extract_items(lines: List[str]) -> List[Dict[str, Any]]:
             })
     return items
 
-def suggest_category(merchant: Optional[str], items: List[Dict[str, Any]], memo: Optional[str] = None) -> Optional[str]:
+def suggest_category(merchant: Optional[str], items: List[Dict[str, Any]],
+                     memo: Optional[str] = None) -> Optional[str]:
     text = " ".join(filter(None, [
         merchant or "",
         " ".join(i["name"] for i in items if i.get("name")),
@@ -170,7 +207,10 @@ def run_vision_ocr(content_bytes: bytes) -> str:
     resp = vision_client.document_text_detection(image=image)
     if resp.error and resp.error.message:
         raise RuntimeError(resp.error.message)
-    return resp.full_text_annotation.text or resp.text_annotations[0].description if resp.text_annotations else ""
+    return (
+        resp.full_text_annotation.text
+        or (resp.text_annotations[0].description if resp.text_annotations else "")
+    )
 
 # API 엔드포인트 !!!
 @app.post("/api/ocr-receipt", response_model=OCRResult)
@@ -214,4 +254,4 @@ def health():
 # 개발용 실행
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)
