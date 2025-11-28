@@ -18,3 +18,20 @@ feedparser==6.0.10
 pandas==2.2.1
 
 python-multipart==0.0.9
+
+# === Core ===
+requests>=2.31.0
+feedparser>=6.0.10
+beautifulsoup4>=4.12.3
+python-dateutil>=2.9.0.post0
+
+# === AI model / summarization ===
+torch>=2.3.0
+transformers>=4.43.0
+accelerate>=0.31.0
+sentencepiece>=0.2.0
+safetensors>=0.4.3
+
+# === Utils ===
+tqdm>=4.66.4
+protobuf>=4.25.3
