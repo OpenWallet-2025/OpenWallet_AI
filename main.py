@@ -1,5 +1,5 @@
-# version 0.1.1
-# 코드 작성일: 2025년 11월 11일
+# version 0.1.2
+# 코드 작성일: 2025년 11월 28일
 # ocr 1st draft for OpenWallet (merchant 로직 개선)
 
 import io
