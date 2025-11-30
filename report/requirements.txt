@@ -8,3 +8,7 @@ accelerate>=0.30.0
 torch
 
 pydantic>=2.7.0
+
+sqlalchemy
+pymysql
+cryptography

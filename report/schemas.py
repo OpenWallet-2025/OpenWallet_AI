@@ -1,37 +1,73 @@
-# 코드 작성일 25/11/21
-# 데이터/요청/응답 스키마
-# 차후 수정 가능
-# schemas.py
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel
+#작성일 : 25/11/30
+from pydantic import BaseModel, Field, validator
+from typing import Optional
+from enum import Enum
+from datetime import date as date_type
 
+# 명세서 정의
+class CategoryEnum(str, Enum):
+    FOOD = "FOOD"             # 식비
+    LIVING = "LIVING"         # 생활
+    TRANSPORT = "TRANSPORT"   # 교통비
+    HEALTH = "HEALTH"         # 의료, 건강
+    CULTURE = "CULTURE"       # 취미, 문화생활
+    EDUCATION = "EDUCATION"   # 교육, 자기계발
+    CLOTHING = "CLOTHING"     # 의류
+    ETC = "ETC"               # 기타
 
-class Transaction(BaseModel):
-    date: Optional[str]
-    merchant: Optional[str]
-    amount: Optional[int]
-    suggested_category: Optional[str] = None
+class EmotionEnum(str, Enum):
+    HAPPY = "HAPPY"           # 기분 좋은 상태
+    EXCITED = "EXCITED"       # 들뜸
+    SAD = "SAD"               # 우울
+    ANGRY = "ANGRY"           # 화남
+    STRESSED = "STRESSED"     # 스트레스
+    NEUTRAL = "NEUTRAL"       # 무감정
 
+# Expense Schemas
+class ExpenseBase(BaseModel):
+    title: str
+    date: date_type
+    price: int = Field(..., gt=0, description="Price must be greater than 0")
+    category: CategoryEnum
+    emotion: EmotionEnum
+    memo: Optional[str] = None
+    satisfaction: int = Field(..., ge=1, le=5, description="Satisfaction must be 1~5")
 
-class ReportRequest(BaseModel):
-    """
-    /api/report 요청용 바디
-    - user_id: 분석 대상 사용자 ID
-    - start_date, end_date: "YYYY-MM-DD" 문자열 (옵션)
-    - question: 기본 리포트 대신 사용자 맞춤 질문을 하고 싶을 때
-    """
-    user_id: int
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    question: Optional[str] = None
+class ExpenseCreate(ExpenseBase):
+    pass
 
+class ExpenseUpdate(BaseModel):
+    title: Optional[str] = None
+    date: Optional[date_type] = None
+    price: Optional[int] = Field(None, gt=0)
+    category: Optional[CategoryEnum] = None
+    emotion: Optional[EmotionEnum] = None
+    memo: Optional[str] = None
+    satisfaction: Optional[int] = Field(None, ge=1, le=5)
 
-class ReportResponse(BaseModel):
-    """
-    /api/report 응답 바디
-    """
-    report: str
-    user_id: int
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    transaction_count: int
+class ExpenseResponse(ExpenseBase):
+    id: str
+
+    class Config:
+        from_attributes = True # ORM 모드 활성화 (구 orm_mode)
+
+# --- Favorite Schemas ---
+class FavoriteBase(BaseModel):
+    title: Optional[str] = None
+    price: Optional[int] = None
+    category: Optional[CategoryEnum] = None
+
+class FavoriteCreate(FavoriteBase):
+    pass
+
+class FavoriteUpdate(FavoriteBase):
+    # 수정 시 미입력 항목은 null(None)로 수정된다는 명세 반영
+    title: Optional[str] = None
+    price: Optional[int] = None
+    category: Optional[CategoryEnum] = None
+
+class FavoriteResponse(FavoriteBase):
+    id: str
+
+    class Config:
+        from_attributes = True
