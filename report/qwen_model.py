@@ -22,16 +22,17 @@ def get_qwen_model():
     if _model is None:
         print(f"[Qwen] Loading model: {MODEL_NAME}")
         # change 16bit to 4bit
-        quantization_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-        )
+        # quantization_config = BitsAndBytesConfig(
+        #     load_in_4bit=True,
+        #     bnb_4bit_compute_dtype=torch.float16,
+        #     bnb_4bit_use_double_quant=True,
+        # )
 
         _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         _model = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
-            quantization_config=quantization_config, # 설정 적용
+            torch_dtype="auto",
+            # quantization_config=quantization_config, # 설정 적용
             device_map="auto",
         )
     return _tokenizer, _model

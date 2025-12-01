@@ -41,18 +41,37 @@ def create_report(request: schemas.ReportRequest, db: Session = Depends(get_db))
             status_code=404, 
             detail="해당 기간에 조회된 지출 데이터가 없습니다."
         )
-
+    total_amount = 0
+    category_summary = {} # 예: {"FOOD": 50000, "TRANSPORT": 30000}
     # 2. 데이터 변환: ORM 객체 -> 딕셔너리 리스트 (모델 입력용)
+    # 수정사항 카테고리별 합계 계산
     transaction_list = []
     for exp in expenses:
-        transaction_list.append({
-            "date": str(exp.date),
-            "merchant": exp.title,
-            "amount": exp.price,
-            "category": exp.category,
-            "emotion": exp.emotion,
-            "memo": exp.memo
-        })
+            # 1. 전체 합계 계산
+            total_amount += exp.price
+            
+            # 2. 카테고리별 합계 계산
+            cat_name = exp.category
+            if cat_name not in category_summary:
+                category_summary[cat_name] = 0
+            category_summary[cat_name] += exp.price
+            
+            # 3. 상세 내역은 개수 제한 (리포트 전달 개수 조절 가능 현재는 30)
+            if len(transaction_list) < 30: 
+                transaction_list.append({
+                    "date": str(exp.date),
+                    "merchant": exp.title,
+                    "amount": exp.price,
+                    "category": exp.category
+                })
+
+    # 3. 모델에게 줄 데이터 재구성
+    # 상세 내역 대신 요약 정보를 줍니다.
+    summary_text = {
+        "total_spent": total_amount,
+        "category_breakdown": category_summary,
+        "recent_transactions_sample": transaction_list # 샘플만 전달
+    }
 
     # 3. 모델 추론: 리포트 생성
     try:
@@ -69,5 +88,5 @@ def create_report(request: schemas.ReportRequest, db: Session = Depends(get_db))
         report=report_text,
         start_date=request.start_date,
         end_date=request.end_date,
-        transaction_count=len(transaction_list)
+        transaction_count=len(expenses)
     )
