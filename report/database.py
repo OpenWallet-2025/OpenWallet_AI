@@ -8,7 +8,7 @@ USER = "openwallet"
 PASSWORD = "openwallet1234"
 HOST = "127.0.0.1"
 PORT = "3306"   
-DB_NAME = "openwallet"
+DB_NAME = "openwallet-db"
 
 # MySQL 연결 URL (pymysql 드라이버 사용)
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
