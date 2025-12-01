@@ -8,11 +8,11 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 class Expense(Base):
-    __tablename__ = "expenses"
+    __tablename__ = "expense"
 
     #user_id 생략
     # UUID는 36자이므로 String(36)으로 지정
-    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    expense_id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     
     # [수정] 일반 문자열은 넉넉하게 255자로 지정합니다.
     title = Column(String(255), nullable=False)
@@ -30,9 +30,9 @@ class Expense(Base):
 # 리포트 기능만 쓰더라도 DB 테이블 정의는 필요할 수 있어 남겨두거나, 
 # 아예 안 쓴다면 삭제해도 됩니다. (여기서는 에러 방지용으로 길이만 수정)
 class Favorite(Base):
-    __tablename__ = "favorites"
+    __tablename__ = "favorite"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
+    favorate_id = Column(String(36), primary_key=True, default=generate_uuid, index=True)
     
     title = Column(String(255), nullable=True)
     price = Column(Integer, nullable=True)

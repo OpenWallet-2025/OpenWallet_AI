@@ -14,9 +14,14 @@ DB_NAME = "openwallet-db"
 SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{USER}:{PASSWORD}@{HOST}:{PORT}/{DB_NAME}"
 
 # 엔진 생성
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL
-)
+try:
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,echo=True
+    )
+    print("db 조회 성공")
+except:
+    print("db 조회 실패")
+
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

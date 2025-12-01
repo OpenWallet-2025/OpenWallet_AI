@@ -8,7 +8,7 @@ def generate_uuid():
     return str(uuid.uuid4())
 
 class Expense(Base):
-    __tablename__ = "expenses"
+    __tablename__ = "expense"
 
     # UUID를 PK로 사용
     id = Column(String, primary_key=True, default=generate_uuid, index=True)
@@ -23,7 +23,7 @@ class Expense(Base):
     satisfaction = Column(Integer, nullable=False)
 
 class Favorite(Base):
-    __tablename__ = "favorites"
+    __tablename__ = "favorite"
 
     id = Column(String, primary_key=True, default=generate_uuid, index=True)
     
