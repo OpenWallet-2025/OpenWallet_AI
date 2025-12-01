@@ -3,6 +3,7 @@
 import os
 import json
 from typing import List, Dict, Any, Optional
+from transformers import BitsAndBytesConfig
 
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -16,16 +17,22 @@ MODEL_NAME = os.getenv("CHATBOT_MODEL", "Qwen/Qwen2.5-1.5B-Instruct")
 _tokenizer = None
 _model = None
 
-
 def get_qwen_model():
     global _tokenizer, _model
     if _model is None:
         print(f"[Qwen] Loading model: {MODEL_NAME}")
+        # change 16bit to 4bit
+        quantization_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_compute_dtype=torch.float16,
+            bnb_4bit_use_double_quant=True,
+        )
+
         _tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
         _model = AutoModelForCausalLM.from_pretrained(
             MODEL_NAME,
-            torch_dtype="auto",
-            device_map="auto",  # GPU 있으면 GPU, 없으면 CPU
+            quantization_config=quantization_config, # 설정 적용
+            device_map="auto",
         )
     return _tokenizer, _model
 
