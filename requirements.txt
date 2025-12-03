@@ -33,3 +33,8 @@ openai==1.33.0
 # === Utils ===
 tqdm>=4.66.4
 protobuf>=4.25.3
+
+# === report에 필요한거 ===
+pymysql
+cryptography
+huggingface_hub[hf_xet]

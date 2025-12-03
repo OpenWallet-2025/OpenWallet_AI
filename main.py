@@ -6,12 +6,11 @@ OpenWallet Unified FastAPI Server
  - 외부 트렌드 요약 (Kanana)
  - Qwen 기반 개인 소비 리포트
 """
-
 from typing import List, Optional, Dict, Any
-
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 # 1) 기존 모듈 import
 # OCR: ocr/main.py 에 있는 로직 재사용
@@ -26,19 +25,11 @@ from ocr.main import (
     suggest_category,
 )
 
-# 소비 통계/툴: tool.py
-from tool import (
-    get_total_spend,
-    get_top_merchants,
-    get_trend,
-)
 
 # 트렌드 요약: trend_summary.py
 from trend_summary import run as run_trend_summary, TrendSummary
 
 # Qwen 리포트: report/ 폴더
-from report.schemas import ReportRequest, ReportResponse
-from report.db import get_transactions_from_db
 try:
     from report.qwen_model import generate_spending_report
     QWEN_AVAILABLE = True
@@ -46,10 +37,14 @@ except Exception:
     QWEN_AVAILABLE = False
     def generate_spending_report(*args, **kwargs):
         return "(로컬 개발 환경에서는 Qwen 모델을 사용할 수 없습니다.)"
+    
+from report import models
+from report import schemas
+from report.database import engine, get_db
 
+models.Base.metadata.create_all(bind=engine)
 
 # 2) FastAPI 앱 공통 설정
-
 app = FastAPI(
     title="OpenWallet Unified API",
     version="1.0.0",
@@ -108,93 +103,6 @@ async def api_ocr_receipt(
     except Exception as e:
         raise HTTPException(500, f"OCR 처리 중 오류: {e}")
 
-# 소비 통계 / 집계 API (tool.py 래핑)
-
-class TotalSpendRequest(BaseModel):
-    user_id: str
-    start_date: str
-    end_date: str
-    category_ids: Optional[List[int]] = None
-    merchant_ids: Optional[List[int]] = None
-
-
-class TotalSpendResponse(BaseModel):
-    total: int
-    currency: str = "KRW"
-
-
-@app.post("/stats/total-spend", response_model=TotalSpendResponse)
-def api_total_spend(req: TotalSpendRequest):
-    data = get_total_spend(
-        user_id=req.user_id,
-        start_date=req.start_date,
-        end_date=req.end_date,
-        category_ids=req.category_ids,
-        merchant_ids=req.merchant_ids,
-    )
-    return TotalSpendResponse(**data)
-
-
-class TopMerchantsRequest(BaseModel):
-    user_id: str
-    start_date: str
-    end_date: str
-    limit: int = 5
-    category_ids: Optional[List[int]] = None
-
-
-class MerchantSummary(BaseModel):
-    merchant_id: int
-    merchant_name: str
-    amount: int
-
-
-class TopMerchantsResponse(BaseModel):
-    top_merchants: List[MerchantSummary]
-    currency: str = "KRW"
-
-
-@app.post("/stats/top-merchants", response_model=TopMerchantsResponse)
-def api_top_merchants(req: TopMerchantsRequest):
-    data = get_top_merchants(
-        user_id=req.user_id,
-        start_date=req.start_date,
-        end_date=req.end_date,
-        limit=req.limit,
-        category_ids=req.category_ids,
-    )
-    # data 형태는 {"top_merchants": [...], "currency": "KRW"}
-    return TopMerchantsResponse(**data)
-
-
-class TrendRequest(BaseModel):
-    user_id: str
-    period: str = "monthly"     # "monthly" | "weekly"
-    months: int = 6
-    category_ids: Optional[List[int]] = None
-
-
-class TrendPoint(BaseModel):
-    period: str
-    amount: int
-
-
-class TrendResponse(BaseModel):
-    series: List[TrendPoint]
-    currency: str = "KRW"
-
-
-@app.post("/stats/trend", response_model=TrendResponse)
-def api_trend(req: TrendRequest):
-    data = get_trend(
-        user_id=req.user_id,
-        period=req.period,
-        months=req.months,
-        category_ids=req.category_ids,
-    )
-    # {"series": [{"period": "...", "amount": ...}, ...], "currency": "KRW"}
-    return TrendResponse(**data)
-
 # 3. 외부 트렌드 요약 API (Kanana + SQLite)
 
 class TrendSummaryRequest(BaseModel):
@@ -246,48 +154,69 @@ def api_trend_summary(req: TrendSummaryRequest):
 # 4. Qwen 기반 개인 소비 리포트 API
 # (기존 report/main.py 로직 그대로)
 
-@app.post("/report", response_model=ReportResponse)
-def api_report(request: ReportRequest):
-    """
-    - Request: ReportRequest (user_id, start_date, end_date, question)
-    - DB에서 거래 내역 조회 후 Qwen으로 리포트 생성
-    """
-    # 1) DB에서 거래 내역 가져오기
-    transactions = get_transactions_from_db(
-        user_id=request.user_id,
-        start_date=request.start_date,
-        end_date=request.end_date,
+@app.post("/report", response_model=schemas.ReportResponse)
+def create_report(request: schemas.ReportRequest, db: Session = Depends(get_db)):
+    # 1. DB 조회: 날짜 범위 필터링
+    # 지출 입력 API는 없지만, DB에 이미 저장된 'models.Expense' 데이터를 읽어와야 리포트 작성이 가능합니다.
+    expenses_query = db.query(models.Expense).filter(
+        models.Expense.date >= request.start_date,
+        models.Expense.date <= request.end_date
     )
+    expenses = expenses_query.all()
 
-    if not transactions:
+    if not expenses:
         raise HTTPException(
-            status_code=404,
-            detail="해당 조건에 해당하는 거래 내역이 없습니다.",
+            status_code=404, 
+            detail="해당 기간에 조회된 지출 데이터가 없습니다."
         )
+    total_amount = 0
+    category_summary = {} # 예: {"FOOD": 50000, "TRANSPORT": 30000}
+    # 2. 데이터 변환: ORM 객체 -> 딕셔너리 리스트 (모델 입력용)
+    # 수정사항 카테고리별 합계 계산
+    transaction_list = []
+    for exp in expenses:
+            # 1. 전체 합계 계산
+            total_amount += exp.price
+            
+            # 2. 카테고리별 합계 계산
+            cat_name = exp.category
+            if cat_name not in category_summary:
+                category_summary[cat_name] = 0
+            category_summary[cat_name] += exp.price
+            
+            # 3. 상세 내역은 개수 제한 (리포트 전달 개수 조절 가능 현재는 30)
+            if len(transaction_list) < 30: 
+                transaction_list.append({
+                    "date": str(exp.date),
+                    "merchant": exp.title,
+                    "amount": exp.price,
+                    "category": exp.category
+                })
 
-    # 2) Qwen 모델로 리포트 생성
-    if not QWEN_AVAILABLE:
-        return ReportResponse(
-            report="(로컬 개발 환경: Qwen 모델 비활성화됨)",
-            user_id=request.user_id,
-            start_date=request.start_date,
-            end_date=request.end_date,
-            transaction_count=len(transactions),
-            )
+    # 3. 모델에게 줄 데이터 재구성
+    # 상세 내역 대신 요약 정보를 줍니다.
+    summary_text = {
+        "total_spent": total_amount,
+        "category_breakdown": category_summary,
+        "recent_transactions_sample": transaction_list # 샘플만 전달
+    }
 
-    report_text = generate_spending_report(
-        transactions=transactions,
-        user_question=request.question,
+    # 3. 모델 추론: 리포트 생성
+    try:
+        report_text = generate_spending_report(
+            transactions=transaction_list,
+            user_question=request.question
         )
+    except Exception as e:
+        print(f"LLM Generation Error: {e}")
+        raise HTTPException(status_code=500, detail=f"리포트 생성 중 오류가 발생했습니다: {str(e)}")
 
-
-    # 3) 응답 구성
-    return ReportResponse(
+    # 4. 결과 반환
+    return schemas.ReportResponse(
         report=report_text,
-        user_id=request.user_id,
         start_date=request.start_date,
         end_date=request.end_date,
-        transaction_count=len(transactions),
+        transaction_count=len(expenses)
     )
 
 # 5. Health Check
