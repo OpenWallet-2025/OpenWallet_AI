@@ -8,3 +8,11 @@ accelerate>=0.30.0
 torch
 
 pydantic>=2.7.0
+
+sqlalchemy
+pymysql
+cryptography
+
+# 양자화 위한 새로운 모듈 설치
+bitsandbytes
+accelerate
