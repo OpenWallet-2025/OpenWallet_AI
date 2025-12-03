@@ -1,7 +1,22 @@
 # 작성일 : 25/11/30
+
 from sqlalchemy import Column, String, Integer, Date, Text
-from database import Base
 import uuid
+import sys
+import os
+
+# 1. 현재 파일(models.py)의 위치를 구합니다.
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 2. 부모 폴더(report)의 부모 폴더(OpenWallet_AI 루트)를 구합니다.
+root_dir = os.path.dirname(current_dir)
+
+# 3. 시스템 경로(sys.path)에 루트 폴더가 없다면 추가합니다.
+if root_dir not in sys.path:
+    sys.path.append(root_dir)
+
+
+from .database import Base
 
 # UUID 생성을 위한 함수
 def generate_uuid():
