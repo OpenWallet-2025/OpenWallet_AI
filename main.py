@@ -26,12 +26,6 @@ from ocr.main import (
     suggest_category,
 )
 
-# 소비 통계/툴: tool.py
-from tool import (
-    get_total_spend,
-    get_top_merchants,
-    get_trend,
-)
 
 # 트렌드 요약: trend_summary.py
 from trend_summary import run as run_trend_summary, TrendSummary
@@ -107,93 +101,6 @@ async def api_ocr_receipt(
         raise
     except Exception as e:
         raise HTTPException(500, f"OCR 처리 중 오류: {e}")
-
-# 소비 통계 / 집계 API (tool.py 래핑)
-
-class TotalSpendRequest(BaseModel):
-    user_id: str
-    start_date: str
-    end_date: str
-    category_ids: Optional[List[int]] = None
-    merchant_ids: Optional[List[int]] = None
-
-
-class TotalSpendResponse(BaseModel):
-    total: int
-    currency: str = "KRW"
-
-
-@app.post("/stats/total-spend", response_model=TotalSpendResponse)
-def api_total_spend(req: TotalSpendRequest):
-    data = get_total_spend(
-        user_id=req.user_id,
-        start_date=req.start_date,
-        end_date=req.end_date,
-        category_ids=req.category_ids,
-        merchant_ids=req.merchant_ids,
-    )
-    return TotalSpendResponse(**data)
-
-
-class TopMerchantsRequest(BaseModel):
-    user_id: str
-    start_date: str
-    end_date: str
-    limit: int = 5
-    category_ids: Optional[List[int]] = None
-
-
-class MerchantSummary(BaseModel):
-    merchant_id: int
-    merchant_name: str
-    amount: int
-
-
-class TopMerchantsResponse(BaseModel):
-    top_merchants: List[MerchantSummary]
-    currency: str = "KRW"
-
-
-@app.post("/stats/top-merchants", response_model=TopMerchantsResponse)
-def api_top_merchants(req: TopMerchantsRequest):
-    data = get_top_merchants(
-        user_id=req.user_id,
-        start_date=req.start_date,
-        end_date=req.end_date,
-        limit=req.limit,
-        category_ids=req.category_ids,
-    )
-    # data 형태는 {"top_merchants": [...], "currency": "KRW"}
-    return TopMerchantsResponse(**data)
-
-
-class TrendRequest(BaseModel):
-    user_id: str
-    period: str = "monthly"     # "monthly" | "weekly"
-    months: int = 6
-    category_ids: Optional[List[int]] = None
-
-
-class TrendPoint(BaseModel):
-    period: str
-    amount: int
-
-
-class TrendResponse(BaseModel):
-    series: List[TrendPoint]
-    currency: str = "KRW"
-
-
-@app.post("/stats/trend", response_model=TrendResponse)
-def api_trend(req: TrendRequest):
-    data = get_trend(
-        user_id=req.user_id,
-        period=req.period,
-        months=req.months,
-        category_ids=req.category_ids,
-    )
-    # {"series": [{"period": "...", "amount": ...}, ...], "currency": "KRW"}
-    return TrendResponse(**data)
 
 # 3. 외부 트렌드 요약 API (Kanana + SQLite)
 
