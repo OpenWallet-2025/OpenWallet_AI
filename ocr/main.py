@@ -12,8 +12,6 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# env 변수 로드
-load_dotenv()
 
 # Google Vision
 USE_VISION = True
@@ -23,6 +21,9 @@ try:
 except Exception:
     USE_VISION = False
     vision_client = None
+
+# env 변수 로드
+load_dotenv()
 
 app = FastAPI(title="OpenWallet OCR API", version="0.1.1")
 
