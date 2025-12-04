@@ -53,24 +53,25 @@ def generate_spending_report(
         user_question = (
             "이 소비 내역을 바탕으로 기간별/카테고리별 요약, "
             "지출 패턴 분석, 절약을 위한 한두 가지 조언을 포함한 "
-            "리포트를 한국어로 작성해줘."
+            "리포트를 줄글 형식으로 작성하십시오."
         )
 
     transactions_json = json.dumps(transactions, ensure_ascii=False, indent=2)
 
     system_prompt = (
-        "당신은 개인 가계부 서비스 'OpenWallet'의 소비 분석 리포트 생성기입니다. "
+        "당신은 개인 가계부 서비스 'OpenWallet'의 소비 분석 리포트 생성가입니다. "
         "입력으로 주어지는 JSON 형식의 거래 내역을 이해하고, "
-        "한국어로 보기 좋은 리포트를 작성합니다. "
+        "특정한 데이터 형식이 읽고 좋은 텍스트(줄글)로 작성하십시오. "
         "가능하면 항목별 합계, 카테고리별 통계, 소비 패턴 요약, "
         "절약/개선 팁 등을 포함하고, 중요한 수치는 숫자로 명확하게 보여주세요."
     )
 
     user_content = (
-        "다음은 한 사용자의 일정 기간 소비 내역입니다.\n"
-        "각 항목은 하나의 결제 건을 의미하며, amount는 원 단위입니다.\n\n"
-        f"```json\n{transactions_json}\n```\n\n"
-        f"요청사항: {user_question}"
+        f"요청사항: {user_question}\n\n"
+        "다음은 분석해야 할 거래 내역 데이터입니다:\n"
+        f"{transactions_json}\n\n"
+        "위 데이터를 바탕으로 분석 보고서를 작성하세요. "
+        "데이터 자체를 다시 보여주지 말고, 해석된 내용만 텍스트로 출력하세요."
     )
 
     messages = [
