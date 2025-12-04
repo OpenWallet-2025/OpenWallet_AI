@@ -96,10 +96,17 @@ jobs:
           ref: ${{ steps.branch.outputs.branch }}
 
       - name: Update Image Tag
-        run: |
-          NEW_TAG="${{ needs.docker-build-and-push.outputs.image_tag }}"
-          echo "Updating tag to: $NEW_TAG"
-          sed -i '/repository:[[:space:]]*ghcr\.io\/openwallet-2025\/ai/{n;s/^[[:space:]]*tag:.*/    tag: "'"${NEW_TAG}"'"/}' apps/ai/values.yaml
+        uses: fjogeleit/yaml-update-action@v0.14.0
+        with:
+          valueFile: apps/ai/values.yaml
+          changes: |
+            {
+              "image.repository": "ghcr.io/${{ github.repository_owner }}/ai",
+              "image.tag": "${{ needs.docker-build-and-push.outputs.image_tag }}"
+            }
+          updateFile: true
+          commitChange: false
+        
 
       - name: Commit & Push
         run: |
