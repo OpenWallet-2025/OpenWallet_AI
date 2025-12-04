@@ -11,6 +11,8 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+import time
+from sqlalchemy.exc import OperationalError
 
 # 1) 기존 모듈 import
 # OCR: ocr/main.py 에 있는 로직 재사용
@@ -24,8 +26,6 @@ from ocr.main import (
     extract_items,
     suggest_category,
 )
-
-
 # 트렌드 요약: trend_summary.py
 from trend_summary import run as run_trend_summary, TrendSummary
 
@@ -42,7 +42,20 @@ from report import models
 from report import schemas
 from report.database import engine, get_db
 
-models.Base.metadata.create_all(bind=engine)
+
+MAX_RETRIES = 5
+for i in range(MAX_RETRIES):
+    try:
+        print(f"Database connection attempt {i+1}...")
+        models.Base.metadata.create_all(bind=engine)
+        print("Database connection successful!")
+        break
+    except OperationalError as e:
+        print(f"Database not ready yet, retrying in 2 seconds... Error: {e}")
+        time.sleep(2)
+        if i == MAX_RETRIES - 1:
+            print("Failed to connect to Database after multiple attempts.")
+            raise e
 
 # 2) FastAPI 앱 공통 설정
 app = FastAPI(
