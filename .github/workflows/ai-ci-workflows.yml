@@ -3,8 +3,8 @@ name: ai-ci-workflows
 on:
   push:
     branches: [develop]
-  pull_request:
-    branches: [develop]
+    paths-ignore:
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
@@ -14,39 +14,9 @@ permissions:
   issues: write # [추가] 이슈 생성을 위해 쓰기 권한 필요
 
 jobs:
-  # [1단계] 테스트 Job: PR 및 Push 모든 상황에서 실행됨
-  code-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-  
-      - name: Code Test End Up
-        run: echo "code test end up successfully!"
 
-  # [2단계-A] 태그 생성: Push 및 PR 모두에서 실행 (조건 제거됨)
-  push-changes:
-    runs-on: ubuntu-latest
-    needs: code-test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Tag Commit as Verified
-        run: |
-          echo "push test verified commit"
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
-          TAG_NAME="verified-${GITHUB_SHA::7}"
-          
-          # 태그가 이미 존재할 경우를 대비해 강제 업데이트(-f)하거나 체크
-          git tag -f $TAG_NAME
-          git push origin $TAG_NAME -f
-          echo "Tagged commit as $TAG_NAME"
-
-  # [2단계-B] 도커 빌드: Push 및 PR 모두에서 실행 
   docker-build-and-push:
     runs-on: ubuntu-latest
-    needs: code-test
     outputs:
       image_tag: ${{ steps.set-vars.outputs.sha_short }}
     steps:
@@ -78,8 +48,7 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Build Succeed Message
         run: echo "succeed to build and push docker image" 
-
-  # [3단계] Manifest 업데이트: 여전히 Push 이벤트일 때만 하는 것이 안전함 
+        
   update-manifest-repo:
     runs-on: ubuntu-latest
     needs: docker-build-and-push
