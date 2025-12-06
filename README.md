@@ -39,6 +39,7 @@ OpenWallet_AI는 소비 데이터를 기반으로
 ---
 
 ## Architecture
+![Architecture](./screenshots/architecture.png)
 ```
 [Frontend App]
 ↓ REST API
