@@ -28,7 +28,7 @@ OpenWallet_AI는 소비 데이터를 기반으로
 ![Emotion Spending Screenshot](./screenshots/emotion_card.png)
 
 ### 📰 소비 트렌드 뉴스  
-![OCR Screenshot](./screenshots/ocr_receipt.png)
+![Trend](./screenshots/trend.png)
 
 ### 🤖 AI 소비 리포트 챗봇  
 ![AI Report Screenshot](./screenshots/ai_report.png)
