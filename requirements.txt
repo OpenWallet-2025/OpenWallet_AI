@@ -1,0 +1,40 @@
+# === FastAPI Core ===
+fastapi==0.110.0
+pydantic==2.7.4
+pydantic-settings==2.2.1
+python-multipart==0.0.9
+uvicorn==0.30.0
+
+# === Environment & ORM ===
+python-dotenv==1.0.1
+SQLAlchemy==2.0.23
+
+# === OCR / Google Cloud Vision ===
+google-cloud-vision==3.4.4
+
+# === HTTP / Parsing / Data ===
+requests==2.31.0
+feedparser==6.0.10
+beautifulsoup4==4.12.3
+python-dateutil==2.9.0.post0
+pandas==2.2.1
+
+# === AI model / Summarization (Kanana, Qwen) ===
+torch>=2.3.0
+transformers>=4.43.0
+accelerate>=0.31.0
+sentencepiece>=0.2.0
+safetensors>=0.4.3
+
+# === OpenAI / LLM (optional for Qwen/OpenAI backend) ===
+openai==1.33.0
+# vllm==0.4.2  # (optional, GPU inference optimization)
+
+# === Utils ===
+tqdm>=4.66.4
+protobuf>=4.25.3
+
+# === report에 필요한거 ===
+pymysql
+cryptography
+huggingface_hub[hf_xet]
