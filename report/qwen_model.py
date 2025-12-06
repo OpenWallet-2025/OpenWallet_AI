@@ -1,5 +1,6 @@
 # 코드 작성일 25/11/21
 # qwen_model.py
+# 2025-12-06
 import os
 import json
 from typing import List, Dict, Any, Optional

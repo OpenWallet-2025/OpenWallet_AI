@@ -1,3 +1,5 @@
+# 2025-12-06
+
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -22,9 +24,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================================================
-# 리포트 (Report) API
-# =========================================================
 
 @app.post("/api/report", response_model=schemas.ReportResponse)
 def create_report(request: schemas.ReportRequest, db: Session = Depends(get_db)):

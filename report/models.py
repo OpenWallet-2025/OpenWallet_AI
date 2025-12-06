@@ -1,5 +1,5 @@
 # 작성일 : 25/11/30
-
+# 2025-12-06
 from sqlalchemy import Column, String, Integer, Date, Text
 import uuid
 import sys

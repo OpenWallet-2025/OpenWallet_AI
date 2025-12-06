@@ -1,4 +1,5 @@
 # demo_report.py
+# 2025-12-06
 import json
 from qwen_model import generate_spending_report
 

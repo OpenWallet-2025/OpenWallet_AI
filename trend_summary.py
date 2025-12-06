@@ -1,5 +1,5 @@
 # trend_summary.py
-# version 0.3.0 (no-DB + 2025-only filter)
+# 2025-12-06
 from __future__ import annotations
 import argparse, json, re, time
 from dataclasses import dataclass
@@ -10,9 +10,6 @@ import feedparser, requests
 from bs4 import BeautifulSoup
 from dateutil import parser as dateparser
 
-# -----------------------------
-# Data Schemas
-# -----------------------------
 @dataclass
 class Article:
     url: str
@@ -34,18 +31,14 @@ class TrendSummary:
     model: str
     raw_response: dict
 
-# -----------------------------
-# Utils
-# -----------------------------
+
 def to_date_iso(dt: datetime) -> str:
     return dt.date().isoformat()
 
 def clamp_len(text: str, max_chars: int = 20000) -> str:
     return text if len(text) <= max_chars else text[:max_chars]
 
-# -----------------------------
-# News Collection
-# -----------------------------
+
 def google_news_rss_url(q, lang="ko", region="KR"):
     return (
         f"https://news.google.com/rss/search?"
@@ -71,7 +64,7 @@ def collect_articles(keywords: List[str], days: int, max_articles: int) -> List[
     out: List[Article] = []
     headers = {"User-Agent": "Mozilla/5.0 (OpenWallet-TrendSummary)"}
 
-    MIN_CHARS = 10  # 🔑 10자 이상이면 그냥 쓴다 (이전 200자 필터 제거)
+    MIN_CHARS = 10  
 
     print(f"[collect_articles] START keywords={keywords}, days={days}, cutoff={cutoff.isoformat()}")
 
@@ -91,7 +84,7 @@ def collect_articles(keywords: List[str], days: int, max_articles: int) -> List[
 
             print(f"  [entry] fetch {link}")
 
-            # ---- 날짜 파싱 & 2025년 + cutoff 필터 ----
+            # 날짜 파싱
             pub = getattr(e, "published", None)
             pub_iso = None
             if pub:
@@ -99,7 +92,7 @@ def collect_articles(keywords: List[str], days: int, max_articles: int) -> List[
                     dt = dateparser.parse(pub)
                     if dt.tzinfo is None:
                         dt = dt.replace(tzinfo=timezone.utc)
-                    # 🔒 2025년 기사만 사용
+                    # 2025년 기사만
                     if dt.year != 2025:
                         print(f"    -> year={dt.year}, not 2025, skip")
                         continue
@@ -173,24 +166,20 @@ def collect_articles(keywords: List[str], days: int, max_articles: int) -> List[
 
     print(f"[collect_articles] FINAL collected={len(out)}")
     return out
-# -----------------------------
-# Parsing helpers (robust JSON)
-# -----------------------------
+
 def _safe_parse_to_json(txt: str):
     """모델이 JSON을 안 지켜도 최대한 구조화해서 반환."""
     # 코드블록/롤 태그 제거
     txt2 = re.sub(r"```[\s\S]*?```", "", txt, flags=re.MULTILINE)
     txt2 = re.sub(r"\b(system|user|assistant)\b\s*", "", txt2)
-
-    # 1) 바깥 JSON 블록 시도
+    
     m = re.search(r"\{[\s\S]*\}", txt2)
     if m:
         try:
             return json.loads(m.group(0))
         except Exception:
             pass
-
-    # 2) 섹션별 텍스트에서 불릿 추출
+    
     def grab(section):
         pat = rf"{section}\s*[:：]\s*([\s\S]*?)(?:\n\s*\w+\s*[:：]|\Z)"
         mm = re.search(pat, txt2, flags=re.IGNORECASE)
@@ -213,9 +202,9 @@ def _safe_parse_to_json(txt: str):
         return js
     return {"bullets": [], "key_stats": [], "risks": [], "opportunities": []}
 
-# -----------------------------
+
 # Summarization (Kanana)
-# -----------------------------
+
 def _pick_device_and_dtype():
     """
     sm_120 (RTX 50xx) → 현재 안정판 PyTorch에 커널 미매칭 가능.
@@ -260,12 +249,12 @@ def summarize_with_kanana(
         model_kwargs["torch_dtype"] = dtype or torch.bfloat16
     m = AutoModelForCausalLM.from_pretrained(model, **model_kwargs)
 
-    # 기사 합본 (컨텍스트 길이 내에서 자르기)
+    # 기사 합본
     joined = "\n\n".join([f"# {a.title}\n{a.content}" for a in arts])
     max_ctx = getattr(m.config, "max_position_embeddings", getattr(tok, "model_max_length", 32768))
     joined = joined[: int(max_ctx * 0.9)]
 
-    # JSON 강제 프롬프트
+
     messages = [
         {
             "role": "system",
@@ -297,7 +286,7 @@ def summarize_with_kanana(
         return_tensors="pt",
     ).to(device)
 
-    # eos/pad 안전 설정
+    
     eot_id = None
     for tkn in ("<|eot_id|>", "<|eot|>"):
         try:
@@ -331,11 +320,10 @@ def summarize_with_kanana(
         else:
             raise
 
-    # ✅ 신규 토큰만 디코딩 (assistant 응답만)
+
     new_tokens = out[0, prompt_ids.shape[-1] :]
     txt = tok.decode(new_tokens, skip_special_tokens=True)
-
-    # ✅ 견고한 JSON 파싱
+    
     js = _safe_parse_to_json(txt)
 
     end = to_date_iso(datetime.now(timezone.utc))
@@ -353,9 +341,7 @@ def summarize_with_kanana(
         raw_response=js,
     )
 
-# -----------------------------
-# Orchestrator
-# -----------------------------
+
 def run(db: str, keywords: List[str], days: int, max_articles: int, model: str) -> TrendSummary:
     """
     메인 엔트리 (DB 없이 동작):
@@ -408,14 +394,12 @@ def run(db: str, keywords: List[str], days: int, max_articles: int, model: str) 
             raw_response={"note": "no_articles_demo"},
         )
 
-    # 실제 기사 기반 요약
+
     s = summarize_with_kanana(arts, model)
     s.keywords = keywords
     return s
 
-# -----------------------------
-# CLI
-# -----------------------------
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
     p.add_argument("--keywords", required=True)
@@ -436,3 +420,4 @@ if __name__ == "__main__":
     print(f"\n기간: {s.period_start} ~ {s.period_end}\n")
     for b in s.bullets:
         print(" -", b)
+        

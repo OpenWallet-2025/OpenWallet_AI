@@ -1,6 +1,6 @@
 # 코드 작성일 25/11/21
 # DB에서 소비 내역 읽어오기(예시)
-# 차후 수정 예정
+# 2025-12-06
 # db.py
 import sqlite3
 from contextlib import contextmanager
