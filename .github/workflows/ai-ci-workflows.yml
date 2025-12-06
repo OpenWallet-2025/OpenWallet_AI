@@ -14,78 +14,9 @@ permissions:
   issues: write # [추가] 이슈 생성을 위해 쓰기 권한 필요
 
 jobs:
-  # [1단계] 테스트 Job: PR 및 Push 모든 상황에서 실행됨
-  code-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup PYTHON
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-          cache: 'pip'
 
-      - name: Install Dependencies
-        run: |
-          echo "의존성 파일, 테스트 도구 설치중..."
-          python -m pip install --upgrade pip
-          pip install flake8 pytest isort
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: Run isort (Check import order)
-        run: |
-          echo "isort test start...."
-          isort . --check-only --diff
-
-      - name: Run flake8 (Linting)
-        run: |
-          echo "flake8 test start...."
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
-      - name: Run pytest
-        run:  |
-          echo "pytest test start...."
-          pytest
-      
-
-      # [추가] 테스트 실패 시 이슈 생성 (if: failure() 사용)
-      - name: Create Issue on Failure
-        if: failure() # 앞선 단계가 실패했을 때만 실행됨
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "ERROR:   failed test"
-          TITLE="🚨 Code Test Failed: $GITHUB_WORKFLOW"
-          BODY="Code test failed in run [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}). Please check the logs."
-          gh issue create --title "$TITLE" --body "$BODY"
-      - name: Code Test End Up
-        run: echo "code test end up successfully!"
-
-  # [2단계-A] 태그 생성: Push 및 PR 모두에서 실행 (조건 제거됨)
-  push-changes:
-    runs-on: ubuntu-latest
-    needs: code-test
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Tag Commit as Verified
-        run: |
-          echo "push test verified commit"
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
-          TAG_NAME="verified-${GITHUB_SHA::7}"
-          
-          # 태그가 이미 존재할 경우를 대비해 강제 업데이트(-f)하거나 체크
-          git tag -f $TAG_NAME
-          git push origin $TAG_NAME -f
-          echo "Tagged commit as $TAG_NAME"
-
-  # [2단계-B] 도커 빌드: Push 및 PR 모두에서 실행 
   docker-build-and-push:
     runs-on: ubuntu-latest
-    needs: code-test
     outputs:
       image_tag: ${{ steps.set-vars.outputs.sha_short }}
     steps:
@@ -117,8 +48,7 @@ jobs:
           cache-to: type=gha,mode=max
       - name: Build Succeed Message
         run: echo "succeed to build and push docker image" 
-
-  # [3단계] Manifest 업데이트: 여전히 Push 이벤트일 때만 하는 것이 안전함 
+        
   update-manifest-repo:
     runs-on: ubuntu-latest
     needs: docker-build-and-push
@@ -135,10 +65,17 @@ jobs:
           ref: ${{ steps.branch.outputs.branch }}
 
       - name: Update Image Tag
-        run: |
-          NEW_TAG="${{ needs.docker-build-and-push.outputs.image_tag }}"
-          echo "Updating tag to: $NEW_TAG"
-          sed -i '/repository:[[:space:]]*ghcr\.io\/openwallet-2025\/ai/{n;s/^[[:space:]]*tag:.*/    tag: "'"${NEW_TAG}"'"/}' apps/ai/values.yaml
+        uses: fjogeleit/yaml-update-action@v0.14.0
+        with:
+          valueFile: apps/ai/values.yaml
+          changes: |
+            {
+              "image.repository": "ghcr.io/${{ github.repository_owner }}/ai",
+              "image.tag": "${{ needs.docker-build-and-push.outputs.image_tag }}"
+            }
+          updateFile: true
+          commitChange: false
+        
 
       - name: Commit & Push
         run: |

@@ -1,0 +1,26 @@
+[
+  {
+    "date": "2025-11-10",
+    "merchant": "스타벅스 강남역점",
+    "amount": 5800,
+    "suggested_category": "카페"
+  },
+  {
+    "date": "2025-11-10",
+    "merchant": "맘스터치 신촌점",
+    "amount": 9200,
+    "suggested_category": "식비"
+  },
+  {
+    "date": "2025-11-11",
+    "merchant": "카카오T",
+    "amount": 13400,
+    "suggested_category": "교통"
+  },
+  {
+    "date": "2025-11-12",
+    "merchant": "올리브영 홍대입구역점",
+    "amount": 15000,
+    "suggested_category": "생활"
+  }
+]
